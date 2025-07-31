@@ -1,3 +1,4 @@
+// src/screens/common/auth/Login.tsx
 import React, { useState } from 'react';
 import {
   View,
@@ -8,7 +9,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   ScrollView,
-  Alert,
+  ActivityIndicator,
   Dimensions,
   SafeAreaView,
   Image,
@@ -17,14 +18,12 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { FontAwesome } from '@react-native-vector-icons/fontawesome';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
-
 import { z } from 'zod';
 import { NavigationProp, useNavigation } from '@react-navigation/native';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '../../../redux/store';
-import { fetchUserDetails, loginUser } from '../../../redux/features/authSlice';
-import { RootStackParamList } from '../../../navigation/StackScreens';
-// import {RootStackParamList} from '../../../navigation/RootStack';
+import { loginUser } from '../../../redux/features/authSlice';
+import { RootStackParamList } from '../../../navigation/RootNavigator';
 
 export const loginSchema = z.object({
   email: z.string().email('Invalid email address'),
@@ -35,11 +34,11 @@ export type LoginFormData = z.infer<typeof loginSchema>;
 const { width, height } = Dimensions.get('window');
 const PRIMARY_COLOR = '#01848F';
 
-export const Login: React.FC = () => {
+const Login: React.FC = () => {
   const navigation = useNavigation<NavigationProp<RootStackParamList>>();
   const dispatch = useDispatch<AppDispatch>();
   const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { loading, error } = useSelector((state: RootState) => state.auth);
   const {
     control,
     handleSubmit,
@@ -48,33 +47,12 @@ export const Login: React.FC = () => {
     resolver: zodResolver(loginSchema),
   });
 
-  const authState = useSelector((state: RootState) => state.auth);
-
   const onSubmit = async (data: LoginFormData) => {
-    setIsLoading(true);
     try {
-      const resultAction = await dispatch(loginUser(data));
-      if (loginUser.fulfilled.match(resultAction)) {
-        // Login successful: Redux state updates and RootNavigator will switch flow
-        // Optionally, you could also reset the navigation stack:
-        // navigation.reset({ index: 0, routes: [{ name: 'CustomerNavigator' }] });
-        await dispatch(fetchUserDetails());
-
-        navigation.reset({
-          index: 0,
-          routes: [{ name: 'Main' }],
-        });
-      } else {
-        Alert.alert('Login Failed', 'Please check your credentials.');
-      }
-    } catch (error) {
-      Alert.alert(
-        'Error',
-        'An error occurred while trying to log in. Please try again.',
-      );
-      console.error('Login error:', error);
-    } finally {
-      setIsLoading(false);
+      const resultAction = await dispatch(loginUser(data)).unwrap();
+      // navigation.replace('Main', { screen: 'Home' }); // Navigate directly to Profile
+    } catch (err) {
+      console.error('Login error:', err);
     }
   };
 
@@ -90,14 +68,10 @@ export const Login: React.FC = () => {
           showsVerticalScrollIndicator={false}
         >
           <View style={styles.brandContainer}>
-            {/* <View style={styles.logoCircle}>
-              <MaterialIcons name="pets" size={40} color="#EF4581" />
-            </View> */}
             <Image
               source={require('../../../assets/images/logo-b.png')}
               style={{ width: 100, height: 100 }}
             />
-            {/* <Text style={styles.brandName}>AIOU</Text> */}
           </View>
           <View style={styles.header}>
             <Text style={styles.title}>Welcome Back!</Text>
@@ -179,17 +153,20 @@ export const Login: React.FC = () => {
             {errors.password && (
               <Text style={styles.errorText}>{errors.password.message}</Text>
             )}
+            {error && <Text style={styles.errorText}>{error}</Text>}
             <TouchableOpacity style={styles.forgotPassword}>
               <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[styles.loginButton, loading && styles.disabledButton]}
               onPress={handleSubmit(onSubmit)}
-              disabled={isLoading}
+              disabled={loading}
             >
-              <Text style={styles.loginButtonText}>
-                {isLoading ? 'Signing In...' : 'Sign In'}
-              </Text>
+              {loading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.loginButtonText}>Sign In</Text>
+              )}
             </TouchableOpacity>
           </View>
           <View style={styles.socialContainer}>
@@ -213,7 +190,7 @@ export const Login: React.FC = () => {
             <Text style={styles.signupText}>New to the Podium? </Text>
             <TouchableOpacity
               activeOpacity={0.8}
-              onPress={() => navigation.navigate('Signup')}
+              onPress={() => navigation.navigate('Auth', { screen: 'Signup' })}
             >
               <Text style={styles.signupLink}>Create Account</Text>
             </TouchableOpacity>
@@ -238,16 +215,6 @@ const styles = StyleSheet.create({
     marginTop: height * 0.04,
     marginBottom: height * 0.02,
   },
-  logoCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#FFF5F8',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  brandName: { fontSize: width * 0.08, color: '#EF4581', fontFamily: 'Jaini' },
   header: { marginBottom: height * 0.04 },
   title: {
     fontSize: width * 0.07,
@@ -286,6 +253,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 20,
+  },
+  disabledButton: {
+    opacity: 0.6,
   },
   loginButtonText: {
     color: '#fff',

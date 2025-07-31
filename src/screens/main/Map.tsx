@@ -217,7 +217,6 @@ const TIMING_CONFIG = {
   easing: Easing.bezier(0.25, 0.1, 0.25, 1),
 };
 
-const API_BASE_URL = 'https://podiumapp.site/server/services';
 
 /**
  * Utility: Trigger haptic feedback

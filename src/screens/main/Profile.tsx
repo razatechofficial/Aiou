@@ -1,3 +1,4 @@
+// src/screens/customer/Profile.tsx
 import React, { useEffect } from 'react';
 import {
   View,
@@ -12,37 +13,55 @@ import {
   Dimensions,
 } from 'react-native';
 import Feather from '@react-native-vector-icons/feather';
-
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
-import { useSelector } from 'react-redux';
-import { RootState } from '../../redux/store';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import { useSelector, useDispatch } from 'react-redux';
+// import { RootState, AppDispatch } from '../../store';
+// import { logout } from '../../store/features/authSlice';
 import { getInitialsFromName } from '../../utils/NameLetterSeperator';
 import LinearGradient from 'react-native-linear-gradient';
-
-type User = {
-  name: string;
-  profile_image?: string;
-  id?: string;
-  department?: string;
-  role?: string;
-};
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/RootNavigator';
+import { AppDispatch, RootState } from '../../redux/store';
+import { logout } from '../../redux/features/authSlice';
 
 const { width } = Dimensions.get('window');
 
-const Profile = () => {
+type Props = NativeStackScreenProps<RootStackParamList, 'Main'>;
+
+interface User {
+  name: string;
+  email: string;
+  profile_image?: string;
+}
+
+const Profile: React.FC<Props> = () => {
+  const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, user, loading, error } = useSelector(
     (state: RootState) => state.auth,
   );
-  const navigation = useNavigation<any>();
+  const navigation =
+    useNavigation<NativeStackScreenProps<RootStackParamList>['navigation']>();
   const insets = useSafeAreaInsets();
 
-  useEffect(() => {
-    if (!isAuthenticated) {
-      navigation.navigate('Login')
-      // });
+  // Check authentication on screen focus
+  useFocusEffect(
+    React.useCallback(() => {
+      if (!isAuthenticated) {
+        navigation.navigate('Auth', { screen: 'Login' });
+      }
+    }, [isAuthenticated, navigation]),
+  );
+
+  // Handle logout
+  const handleLogout = async () => {
+    try {
+      await dispatch(logout());
+      navigation.navigate('Auth', { screen: 'Login' });
+    } catch (err) {
+      console.error('Logout failed:', err);
     }
-  }, [isAuthenticated, navigation]);
+  };
 
   if (loading) {
     return (
@@ -62,7 +81,7 @@ const Profile = () => {
 
   const typedUser = user as User;
 
-  // Mock academic data - replace with actual data from your backend
+  // Dummy academic data
   const academicData = {
     cgpa: '3.8',
     credits: '96',
@@ -129,7 +148,6 @@ const Profile = () => {
       {/* Header Section */}
       <LinearGradient
         colors={['#01848F', '#016972']}
-        // style={[styles.headerWrapper, {paddingTop: insets.top + 2}]}>
         style={[styles.headerWrapper, { paddingTop: insets.top + 2 }]}
       >
         <View style={styles.headerContent}>
@@ -141,7 +159,7 @@ const Profile = () => {
           </TouchableOpacity>
           <Text style={styles.headerTitle}>Student Profile</Text>
           <TouchableOpacity
-            onPress={() => navigation.navigate('Settings')}
+            onPress={() => navigation.navigate('Settings')} // Ensure Settings screen exists
             style={styles.settingsButton}
           >
             <Feather name="settings" size={24} color="#fff" />
@@ -172,13 +190,10 @@ const Profile = () => {
             </View>
           </View>
           <Text style={styles.userName}>{typedUser.name}</Text>
-          <Text style={styles.studentId}>{typedUser.id || 'N/A'}</Text>
-          <Text style={styles.program}>
-            {typedUser.department || 'Program not specified'}
-          </Text>
-          <Text style={styles.semester}>
-            {typedUser.role || 'Semester not specified'}
-          </Text>
+          <Text style={styles.studentId}>{typedUser.email}</Text>
+          <TouchableOpacity style={styles.logoutButton} onPress={handleLogout}>
+            <Text style={styles.logoutText}>Logout</Text>
+          </TouchableOpacity>
         </View>
 
         {/* Academic Stats */}
@@ -379,8 +394,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    // paddingVertical: 10,
-    zIndex: 1,
+    paddingVertical: 10,
   },
   backButton: {
     padding: 8,
@@ -474,17 +488,21 @@ const styles = StyleSheet.create({
   studentId: {
     fontSize: 16,
     color: '#01848F',
-    marginBottom: 2,
+    marginBottom: 10,
     fontWeight: '500',
   },
-  program: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 2,
+  logoutButton: {
+    backgroundColor: '#EF4581',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    marginTop: 10,
   },
-  semester: {
-    fontSize: 14,
-    color: '#666',
+  logoutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '600',
+    textAlign: 'center',
   },
   statsContainer: {
     flexDirection: 'row',
@@ -718,7 +736,6 @@ const styles = StyleSheet.create({
     paddingTop: 8,
   },
   actionButton: {
-    // width: (width - 48) / 2,
     width: '48%',
     backgroundColor: '#F8F9FA',
     borderRadius: 16,

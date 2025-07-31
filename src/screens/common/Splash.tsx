@@ -1,3 +1,5 @@
+// src/screens/common/Splash.tsx
+import React, { useEffect } from 'react';
 import {
   Text,
   StyleSheet,
@@ -5,41 +7,36 @@ import {
   Dimensions,
   StatusBar,
   Image,
+  ActivityIndicator,
   Platform,
 } from 'react-native';
-import React, { useEffect } from 'react';
 import LinearGradient from 'react-native-linear-gradient';
-import { useNavigation } from '@react-navigation/native';
-import { AppNavigation } from '../../types/navigation';
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState, AppDispatch } from '../../redux/store';
+import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../../navigation/RootNavigator';
 import changeNavigationBarColor from 'react-native-navigation-bar-color';
 import useNavigationType from '../../hooks/useAndroidNavigationType';
 
 const { width } = Dimensions.get('window');
 
-const Splash = () => {
-  const navigator = useNavigation<AppNavigation>();
+type Props = NativeStackScreenProps<RootStackParamList, 'Splash'>;
 
-  //! Naviagtion Bar color for ANDROID
+const Splash: React.FC<Props> = ({ navigation }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { loading, error, isAuthenticated } = useSelector(
+    (state: RootState) => state.auth,
+  );
   const navigationType = useNavigationType();
+
+  // Android Navigation Bar Color
   useEffect(() => {
-    if (Platform.OS !== 'android') {
-      console.log('Skipping navigation bar color change: Not Android');
-      return;
-    }
+    if (Platform.OS !== 'android') return;
 
-    console.log('useEffect running with navigationType:', navigationType);
-
-    const applyNavigationBarColor = () => {
+    const applyNavigationBarColor = async () => {
       try {
         if (navigationType === 'gestures') {
-          changeNavigationBarColor('transparent', true);
-        } else if (navigationType === 'buttons') {
-          console.log(
-            'Button navigation detected, leaving default (no change)',
-          );
-          // Do nothing to keep the default system color
-        } else {
-          console.log('Navigation type is unknown, skipping');
+          await changeNavigationBarColor('transparent', true);
         }
       } catch (error) {
         console.error('Error applying navigation bar color:', error);
@@ -48,17 +45,15 @@ const Splash = () => {
 
     applyNavigationBarColor();
   }, [navigationType]);
-  useEffect(() => {
-    // setTimeout(() => {
-    //   navigator.replace('Login');
-    // }, 2000);
-    const timer = setTimeout(() => {
-      navigator.replace('MainApp');
-    }, 2000);
 
-    // Cleanup the timer on component unmount
+  // Navigate after auth check
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      navigation.replace(isAuthenticated ? 'Main' : 'Auth');
+    }, 2000);
     return () => clearTimeout(timer);
-  }, [navigator]);
+  }, [navigation, isAuthenticated]);
+
   return (
     <LinearGradient
       colors={['#1e3a8a', '#01848F']}
@@ -68,25 +63,29 @@ const Splash = () => {
     >
       <StatusBar
         barStyle="light-content"
-        translucent={true}
-        backgroundColor={'transparent'}
+        translucent
+        backgroundColor="transparent"
       />
       <View style={styles.content}>
         <View style={styles.circle}>
           <Image
             source={require('../../assets/images/logo.png')}
             style={styles.logo}
+            resizeMode="contain"
           />
         </View>
         <Text style={styles.title}>AIOU</Text>
-
         <Text style={styles.subtitle}>Education For All</Text>
+        {loading && (
+          <ActivityIndicator size="large" color="#fff" style={styles.loader} />
+        )}
+        {error && <Text style={styles.error}>{error}</Text>}
       </View>
       <Text style={styles.footer}>v1.0.0</Text>
     </LinearGradient>
   );
 };
-// 1e3a8a
+
 export default Splash;
 
 const styles = StyleSheet.create({
@@ -101,36 +100,48 @@ const styles = StyleSheet.create({
   circle: {
     width: width * 0.3,
     height: width * 0.3,
-    borderRadius: (width * 0.3) / 2,
-    backgroundColor: 'rgba(255, 255, 255, 0.0)',
+    borderRadius: width * 0.15,
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 20,
   },
   logo: {
-    height: 190,
-    width: 190,
+    width: width * 0.25,
+    height: width * 0.25,
   },
   title: {
-    paddingTop: 15,
     fontSize: width * 0.18,
-    color: 'white',
+    color: '#fff',
     fontFamily: 'Jaini',
     letterSpacing: 2,
+    textAlign: 'center',
   },
   subtitle: {
     fontSize: width * 0.05,
-    color: 'white',
+    color: '#fff',
     marginTop: 10,
     fontFamily: 'Jaini',
     letterSpacing: 1,
+    textAlign: 'center',
   },
   footer: {
-    color: 'white',
+    color: '#fff',
     position: 'absolute',
     bottom: 20,
     alignSelf: 'center',
     fontSize: 12,
     opacity: 0.7,
+    fontFamily: Platform.select({ ios: 'Helvetica', android: 'Roboto' }),
+  },
+  loader: {
+    marginTop: 20,
+  },
+  error: {
+    color: '#ff4d4f',
+    fontSize: 14,
+    marginTop: 10,
+    textAlign: 'center',
+    fontFamily: Platform.select({ ios: 'Helvetica', android: 'Roboto' }),
   },
 });

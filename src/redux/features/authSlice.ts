@@ -1,9 +1,8 @@
-
-
-import {createSlice, createAsyncThunk, PayloadAction} from '@reduxjs/toolkit';
+// src/store/authSlice.ts
+import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import * as Keychain from 'react-native-keychain';
-import {AuthResponse, RolePermission, User} from '../../types/auth';
+import { AuthResponse, RolePermission, User } from '../../types/auth';
 
 export interface AuthState {
   user: User | null;
@@ -13,7 +12,7 @@ export interface AuthState {
   availableRoles: string[];
   loading: boolean;
   error: string | null;
-  signupMessage: string | null; // To store signup success message
+  signupMessage: string | null;
 }
 
 const initialState: AuthState = {
@@ -28,23 +27,54 @@ const initialState: AuthState = {
 };
 
 export function generateRoleArray(primaryRole: string): string[] {
-  // Normalize to lowercase for consistent comparison
   const role = primaryRole.toLowerCase();
   if (role === 'admin') {
-    // For admin, return an array with primary role and add vendor and customer.
     return ['admin', 'vendor', 'customer'];
   } else if (role === 'service provider') {
-    // For service provider, return array with vendor (replacing "service provider") and customer.
     return ['vendor', 'customer'];
   } else if (role === 'customer') {
-    // For customer, return array with primary role and add vendor.
     return ['customer', 'vendor'];
   }
-  // Default: just return the primary role.
   return [role];
 }
 
-//!======================================== Fetch User thunk =====================================
+// New Thunk: Check and Refresh Tokens
+export const checkAndRefreshToken = createAsyncThunk<
+  boolean, // Returns true if session is valid, false otherwise
+  void,
+  { rejectValue: string }
+>('auth/checkAndRefreshToken', async (_, thunkAPI) => {
+  try {
+    const refreshCredentials = await Keychain.getInternetCredentials(
+      'refreshToken',
+    );
+    if (!refreshCredentials) {
+      return false; // No refresh token, session invalid
+    }
+
+    // Try fetching user details with existing access token
+    const tokenCredentials = await Keychain.getInternetCredentials(
+      'accessToken',
+    );
+    if (tokenCredentials) {
+      try {
+        await thunkAPI.dispatch(fetchUserDetails()).unwrap();
+        return true; // Access token is valid
+      } catch (error) {
+        // Access token might be expired, try refreshing
+      }
+    }
+
+    // Attempt to refresh access token
+    await thunkAPI.dispatch(refreshAccessToken()).unwrap();
+    await thunkAPI.dispatch(fetchUserDetails()).unwrap();
+    return true; // Successfully refreshed and fetched user details
+  } catch (error: any) {
+    return false; // Both tokens invalid or refresh failed
+  }
+});
+
+// Fetch User Details Thunk
 export const fetchUserDetails = createAsyncThunk<
   {
     currentlyActiveAsRole: string | null;
@@ -53,10 +83,9 @@ export const fetchUserDetails = createAsyncThunk<
     rolePermissions: RolePermission[];
   },
   void,
-  {rejectValue: string}
+  { rejectValue: string }
 >('auth/fetchUserDetails', async (_, thunkAPI) => {
   try {
-    // Retrieve access token from Keychain
     const tokenCredentials = await Keychain.getInternetCredentials(
       'accessToken',
     );
@@ -64,20 +93,17 @@ export const fetchUserDetails = createAsyncThunk<
       return thunkAPI.rejectWithValue('No access token found');
     }
 
-    // Call the auth/me endpoint
     const response = await axios.get<AuthResponse>(
       'https://podiumapp.site/server/auth/me',
       {
-        headers: {Authorization: `Bearer ${tokenCredentials.password}`},
+        headers: { Authorization: `Bearer ${tokenCredentials.password}` },
       },
     );
-    // Flatten the nested structure
-    const {user: actualUser, rolePermissions} = response.data.user;
+
+    const { user: actualUser, rolePermissions } = response.data.user;
     const primaryRoleName = actualUser.userRoles[0].role.name;
-    // Call our helper function
     const generatedRoles = generateRoleArray(primaryRoleName);
     const activeRole = generatedRoles[0];
-    // Optionally, update the user object (if you want to store it there too)
     actualUser.currentlyActiveAsRole = activeRole;
 
     return {
@@ -88,19 +114,23 @@ export const fetchUserDetails = createAsyncThunk<
     };
   } catch (error: any) {
     return thunkAPI.rejectWithValue(
-      error.response?.data || 'Failed to fetch user details',
+      error.response?.data?.message || 'Failed to fetch user details',
     );
   }
 });
 
-//!======================================== Login thunk =====================================
+// Login Thunk
 export const loginUser = createAsyncThunk<
-  {accessToken: string; refreshToken: string; user: User; message: string},
-  {email: string; password: string},
-  {rejectValue: string}
+  {
+    accessToken: string;
+    refreshToken: string;
+    user: User;
+    message: string;
+  },
+  { email: string; password: string },
+  { rejectValue: string }
 >('auth/loginUser', async (loginData, thunkAPI) => {
   try {
-    // The login endpoint returns a flat structure
     const response = await axios.post<{
       message: string;
       user: Partial<User>;
@@ -108,8 +138,7 @@ export const loginUser = createAsyncThunk<
       refreshToken: string;
     }>('https://podiumapp.site/server/auth/login', loginData);
 
-    const {accessToken, refreshToken, user, message} = response.data;
-    // Store tokens in Keychain
+    const { accessToken, refreshToken, user, message } = response.data;
     await Keychain.setInternetCredentials(
       'accessToken',
       'accessToken',
@@ -120,20 +149,26 @@ export const loginUser = createAsyncThunk<
       'refreshToken',
       refreshToken,
     );
-    return {accessToken, refreshToken, message, user: user as User};
+
+    // Fetch full user details after login
+    await thunkAPI.dispatch(fetchUserDetails()).unwrap();
+
+    return { accessToken, refreshToken, message, user: user as User };
   } catch (error: any) {
-    return thunkAPI.rejectWithValue(error.response?.data || 'Login failed');
+    return thunkAPI.rejectWithValue(
+      error.response?.data?.message || 'Login failed',
+    );
   }
 });
 
-//!======================================== Signup thunk =====================================
+// Signup Thunk
 export const signupUser = createAsyncThunk<
-  string, // Returns a success message
-  {name: string; email: string; password: string},
-  {rejectValue: string}
+  string,
+  { name: string; email: string; password: string },
+  { rejectValue: string }
 >('auth/signupUser', async (signupData, thunkAPI) => {
   try {
-    const response = await axios.post<{message: string}>(
+    const response = await axios.post<{ message: string }>(
       'https://podiumapp.site/server/auth/signup',
       signupData,
     );
@@ -145,11 +180,11 @@ export const signupUser = createAsyncThunk<
   }
 });
 
-//!======================================== Refresh Token thunk =====================================
+// Refresh Token Thunk
 export const refreshAccessToken = createAsyncThunk<
-  {accessToken: string; refreshToken: string},
+  { accessToken: string; refreshToken: string },
   void,
-  {rejectValue: string}
+  { rejectValue: string }
 >('auth/refreshAccessToken', async (_, thunkAPI) => {
   try {
     const refreshCredentials = await Keychain.getInternetCredentials(
@@ -164,7 +199,7 @@ export const refreshAccessToken = createAsyncThunk<
     }>('https://podiumapp.site/server/auth/refresh', {
       refreshToken: refreshCredentials.password,
     });
-    const {accessToken, refreshToken} = response.data;
+    const { accessToken, refreshToken } = response.data;
     await Keychain.setInternetCredentials(
       'accessToken',
       'accessToken',
@@ -175,10 +210,10 @@ export const refreshAccessToken = createAsyncThunk<
       'refreshToken',
       refreshToken,
     );
-    return {accessToken, refreshToken};
+    return { accessToken, refreshToken };
   } catch (error: any) {
     return thunkAPI.rejectWithValue(
-      error.response?.data || 'Token refresh failed',
+      error.response?.data?.message || 'Token refresh failed',
     );
   }
 });
@@ -187,45 +222,50 @@ const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    // Logout: clear state and remove tokens from Keychain
     logout(state) {
       state.user = null;
       state.isAuthenticated = false;
       state.rolePermissions = [];
+      state.currentlyActiveAsRole = null;
+      state.availableRoles = [];
       state.signupMessage = null;
       Keychain.resetInternetCredentials('accessToken');
       Keychain.resetInternetCredentials('refreshToken');
     },
-    // Set user manually if needed
     setUser(state, action: PayloadAction<User>) {
       state.user = action.payload;
       state.isAuthenticated = true;
     },
-    // updateActiveRoleByIndex(state, action: PayloadAction<number>) {
-    //   if (
-    //     state.user &&
-    //     state.user.userRoles &&
-    //     state.user.userRoles.length > action.payload
-    //   ) {
-    //     state.currentlyActiveAsRole =
-    //       state.user.userRoles[action.payload].role.name.toLowerCase();
-    //     console.log('Updated active role to:', state.currentlyActiveAsRole);
-    //   }
-    // },
-
     updateActiveRoleByIndex(state, action: PayloadAction<number>) {
       if (
         state.availableRoles &&
         state.availableRoles.length > action.payload
       ) {
         state.currentlyActiveAsRole = state.availableRoles[action.payload];
-        console.log('Updated active role to:', state.currentlyActiveAsRole);
       }
     },
   },
   extraReducers: builder => {
     builder
-      //! Login cases
+      // Check and Refresh Token cases
+      .addCase(checkAndRefreshToken.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(checkAndRefreshToken.fulfilled, (state, action) => {
+        state.loading = false;
+        state.isAuthenticated = action.payload;
+      })
+      .addCase(checkAndRefreshToken.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload || 'Failed to validate session';
+        state.isAuthenticated = false;
+        state.user = null;
+        state.rolePermissions = [];
+        state.currentlyActiveAsRole = null;
+        state.availableRoles = [];
+      })
+      // Login cases
       .addCase(loginUser.pending, state => {
         state.loading = true;
         state.error = null;
@@ -239,7 +279,7 @@ const authSlice = createSlice({
         state.loading = false;
         state.error = action.payload || 'Login failed';
       })
-      //! Fetch User cases
+      // Fetch User cases
       .addCase(fetchUserDetails.pending, state => {
         state.loading = true;
         state.error = null;
@@ -255,8 +295,13 @@ const authSlice = createSlice({
       .addCase(fetchUserDetails.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Failed to fetch user details';
+        state.isAuthenticated = false;
+        state.user = null;
+        state.rolePermissions = [];
+        state.currentlyActiveAsRole = null;
+        state.availableRoles = [];
       })
-      //! Signup cases
+      // Signup cases
       .addCase(signupUser.pending, state => {
         state.loading = true;
         state.error = null;
@@ -264,23 +309,31 @@ const authSlice = createSlice({
       })
       .addCase(signupUser.fulfilled, (state, action) => {
         state.loading = false;
-        // Store the signup message; signup does not change user state.
         state.signupMessage = action.payload;
       })
       .addCase(signupUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Signup failed';
       })
-      //! Token refresh cases (no change in authentication status)
+      // Token refresh cases
+      .addCase(refreshAccessToken.pending, state => {
+        state.loading = true;
+        state.error = null;
+      })
       .addCase(refreshAccessToken.fulfilled, state => {
         state.loading = false;
       })
       .addCase(refreshAccessToken.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload || 'Token refresh failed';
+        state.isAuthenticated = false;
+        state.user = null;
+        state.rolePermissions = [];
+        state.currentlyActiveAsRole = null;
+        state.availableRoles = [];
       });
   },
 });
 
-export const {logout, setUser, updateActiveRoleByIndex} = authSlice.actions;
+export const { logout, setUser, updateActiveRoleByIndex } = authSlice.actions;
 export default authSlice.reducer;
