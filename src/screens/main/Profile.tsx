@@ -1,5 +1,5 @@
 // src/screens/customer/Profile.tsx
-import React, { useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
