@@ -1,9 +1,10 @@
 // /src/api/apiClient.ts
-import axios, {AxiosRequestConfig} from 'axios';
+import axios, { AxiosRequestConfig } from 'axios';
 import * as Keychain from 'react-native-keychain';
 // import store from '../store/store';
-import {refreshAccessToken, logout} from '../redux/features/authSlice';
-import store from '../redux/store';
+import { refreshAccessToken, logout } from '../redux/features/authSlice';
+import { store } from '../redux/store';
+// import store from '../redux/store';
 
 const apiClient = axios.create({
   baseURL: 'https://podiumapp.site/server',
@@ -35,7 +36,7 @@ apiClient.interceptors.response.use(
       try {
         const resultAction = await store.dispatch(refreshAccessToken());
         if (refreshAccessToken.fulfilled.match(resultAction)) {
-          const {accessToken} = resultAction.payload;
+          const { accessToken } = resultAction.payload;
           originalRequest.headers.Authorization = `Bearer ${accessToken}`;
           return apiClient(originalRequest);
         } else {

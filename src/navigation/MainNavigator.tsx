@@ -4,6 +4,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { StyleSheet, TouchableOpacity, View } from 'react-native';
 import MaterialIcons from '@react-native-vector-icons/material-icons';
 import Ionicons from '@react-native-vector-icons/ionicons';
+import Feather from '@react-native-vector-icons/feather';
 import { LinearShadowView } from 'react-native-inner-shadow';
 import Profile from '../screens/main/Profile';
 import Home from '../screens/main/Home';

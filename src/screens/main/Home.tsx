@@ -850,13 +850,13 @@ const Home = ({ navigation }: { navigation: NavigationType }) => {
             </View>
             <View style={styles.headerIcons}>
               <TouchableOpacity
-                onPress={() => navigation.navigate('Notifications')}
+                onPress={() => navigation.navigate('NotificationsStack')}
                 style={{ marginRight: 16 }}
               >
                 <Feather name="bell" size={22} color="#fff" />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={() => navigation.navigate('Favorites')}
+                onPress={() => navigation.navigate('FavoritesStack')}
               >
                 <Feather name="star" size={22} color="#fff" />
               </TouchableOpacity>
@@ -1745,7 +1745,7 @@ const Home = ({ navigation }: { navigation: NavigationType }) => {
                   >
                     <Text style={styles.newsCategoryText}>{news.category}</Text>
                   </View>
-                  <Text style={styles.newsReadTime}>{news.readTime}</Text>
+                  {/* <Text style={styles.newsReadTime}>{news.readTime}</Text> */}
                 </View>
               </View>
             </TouchableOpacity>
@@ -1957,7 +1957,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    // elevation: 3,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
@@ -2130,14 +2130,15 @@ const styles = StyleSheet.create({
   facultyCard: {
     width: 200,
     backgroundColor: '#fff',
+    overflow: 'hidden',
     borderRadius: 12,
     marginRight: 16,
-    overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowRadius: 8,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   facultyImage: {
     width: '100%',
@@ -2218,7 +2219,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    // elevation: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
@@ -2305,7 +2306,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    // elevation: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
@@ -2371,7 +2372,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    elevation: 2,
+    elevation: 1,
   },
   serviceIcon: {
     width: 48,
@@ -2547,7 +2548,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    // elevation: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
@@ -2652,7 +2653,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    // elevation: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
@@ -2721,7 +2722,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    // elevation: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
@@ -2821,7 +2822,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    // elevation: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
@@ -2863,7 +2864,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    // elevation: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },
@@ -2987,7 +2988,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 4,
+    // elevation: 4,
     borderWidth: 1,
     borderColor: '#f0f0f0',
   },

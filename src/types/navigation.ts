@@ -34,6 +34,8 @@ export type RootStackParamList = {
   MainApp: { screen: string };
   Profile: { userId?: string };
   Settings: undefined;
+  NotificationsStack: undefined;
+  FavoritesStack: undefined;
   Conversations: {
     recipientId: number;
     recipientName: string;

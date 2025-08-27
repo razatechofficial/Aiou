@@ -217,7 +217,6 @@ const TIMING_CONFIG = {
   easing: Easing.bezier(0.25, 0.1, 0.25, 1),
 };
 
-
 /**
  * Utility: Trigger haptic feedback
  */
@@ -310,17 +309,23 @@ const getProviderLogo = (businessName: string): string => {
 const getCategoryIcon = (category: string): string => {
   switch (category) {
     case 'Home Maintenance':
-      return 'hammer';
+      return 'build';
     case 'Health & Wellness':
-      return 'fitness';
+      return 'medical';
     case 'Education & Tutoring':
       return 'school';
     case 'Event Management':
       return 'calendar';
     case 'Transportation':
       return 'car';
+    case 'administrative':
+      return 'business';
+    case 'academic':
+      return 'library';
+    case 'recreational':
+      return 'game-controller';
     default:
-      return 'briefcase';
+      return 'location';
   }
 };
 
@@ -817,10 +822,17 @@ const Map: React.FC = () => {
 
       {selectedLocation && (
         <View style={styles.locationCard}>
-          <Image
-            source={{ uri: selectedLocation.image }}
-            style={styles.locationImage}
-          />
+          <TouchableOpacity
+            style={styles.locationCloseButton}
+            onPress={() => setSelectedLocation(null)}
+          >
+            <Ionicons name="close" size={24} color="#666" />
+          </TouchableOpacity>
+
+          <View style={styles.imagePlaceholder}>
+            <Ionicons name="image-outline" size={48} color="#ccc" />
+          </View>
+
           <View style={styles.locationInfo}>
             <Text style={styles.locationTitle}>{selectedLocation.title}</Text>
             <Text style={styles.locationDescription}>
@@ -1127,7 +1139,7 @@ const styles = StyleSheet.create({
   },
   backButtonContainer: {
     position: 'absolute',
-    top: Platform.OS === 'ios' ? 55 : 90,
+    top: Platform.OS === 'ios' ? 100 : 60,
     left: 20,
     zIndex: 2,
   },
@@ -1188,7 +1200,9 @@ const styles = StyleSheet.create({
   },
   locationCard: {
     position: 'absolute',
-    bottom: SCREEN_HEIGHT * 0.3,
+    // bottom: SCREEN_HEIGHT * 0.3,
+    top: SCREEN_HEIGHT * 0.07,
+    zIndex: 10,
     left: 20,
     right: 20,
     backgroundColor: '#fff',
@@ -1202,7 +1216,7 @@ const styles = StyleSheet.create({
   },
   locationImage: {
     width: '100%',
-    height: 150,
+    height: 100,
     borderRadius: 12,
     marginBottom: 12,
   },
@@ -1857,5 +1871,40 @@ const styles = StyleSheet.create({
   suggestionsContent: { paddingBottom: scaleSize(10) },
   clearButton: {
     padding: 4,
+  },
+  locationCloseButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.2,
+    shadowRadius: 2,
+    elevation: 3,
+  },
+  imagePlaceholder: {
+    width: '100%',
+    height: 100,
+    borderRadius: 12,
+    marginBottom: 12,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: '#e0e0e0',
+    borderStyle: 'dashed',
+  },
+  placeholderText: {
+    fontSize: 12,
+    color: '#999',
+    marginTop: 8,
+    textAlign: 'center',
   },
 });
